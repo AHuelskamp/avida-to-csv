@@ -1,0 +1,6 @@
+#ignore all data directory 
+data/
+
+#igore .spop and .json files 
+*.spop
+*.json
