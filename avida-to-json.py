@@ -14,15 +14,86 @@ If a line is missing columns, (in some .spop files where things are "dead") it
 is assumed that the missing fields are from the end.
 """
 
+import re 
 import csv 
 import json 
 import sys 
 import argparse 
+import os
 
 
+
+#set up parser
 commandParser = argparse.ArgumentParser(description="A list of avida files to convert to json") 
 commandParser.add_argument('files', metavar="FILE", type=str, nargs="+", 
                         help="files to convert")
-
 args = commandParser.parse_args()
+
+
+#set up eprint function 
+#should be replaced by logger soon 
+def eprint(message,newline=True):
+    sys.stderr.write(message)
+    if newline: sys.stderr.write("\n")
+
+"""
+for file in args.files
+    convert it. 
+    write it. 
+"""
+
+
+for fileName in args.files: 
+    #Check that file even exists 
+    if not os.path.isfile(fileName):
+        #in the future, I want to throw this into a logger 
+        eprint("{} could not be found".format(fileName))
+        continue 
+
+    #open file and generate Header (colNames) 
+    #This assumes that all spop files have the same header
+    #If 2 .spop files have slightly different column names
+    #(even if they have the same data) they will not be the same json file
+    
+    headers=[]
+    with open(fileName, "r") as f: 
+        while True:
+            #read until out of header lines 
+            nextLine=f.readline().strip()
+            if len(nextLine)==0 or "#" not in nextLine: 
+                break 
+            else: 
+                headers.append(nextLine)
+
+    #names are just camelCase Concatenations
+    #of numbered lines
+    # '# 1: field description' 
+    #unless a format line is there 
+    #in spop files format lines look like this: 
+    # '#format field1 fileld2 ... fieldN'
+    #
+    jsonHeaders=[]
+    for line in headers: 
+        #match starts from beginning of line (unlike search) 
+        if re.match("#format",line):
+            fields=line.split(" ")
+            jsonHeaders=fields[1:]
+            break
+
+        elif re.match("# +[0-9]+:",line): 
+            #createField name and add it to jsonHeaders
+            #fields=line.split(" ")
+            #print(fields)
+            pass 
+
+    print("headers")
+    print(jsonHeaders)
+
+
+
+
+
+
+
+
 
