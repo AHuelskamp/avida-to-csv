@@ -20,6 +20,7 @@ import json
 import sys 
 import argparse 
 import os
+import string 
 
 
 
@@ -81,10 +82,11 @@ for fileName in args.files:
             break
 
         elif re.match("# +[0-9]+:",line): 
-            #createField name and add it to jsonHeaders
-            #fields=line.split(" ")
-            #print(fields)
-            pass 
+            line=line.replace(re.match("# +[0-9]+:",line).group(),"").strip()
+            line=string.capwords(line)
+            line=line[0].lower()+line[1:]
+            fieldHeader="".join([ x for x in line if x.isalpha()])
+            jsonHeaders.append(fieldHeader)
 
     print("headers")
     print(jsonHeaders)
