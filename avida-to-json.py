@@ -3,7 +3,7 @@ Usage:
     python3 thisFile.py fileA.spop [fileB.dat ... fileN.spop]
 
 Takes all avida style files and throws them into a json file for easier processing. 
-This is largely based off project 1 in CSE 480 
+This is largely based off project 1 in CSE 480 FS2016
 
 The avida files are odd in that they have a multiline header describing the columns, 
 a blank line, and then the data. 
@@ -23,7 +23,6 @@ import os
 import string 
 
 
-
 #set up parser
 commandParser = argparse.ArgumentParser(description="A list of avida files to convert to json") 
 commandParser.add_argument('files', metavar="FILE", type=str, nargs="+", 
@@ -37,19 +36,20 @@ def eprint(message,newline=True):
     sys.stderr.write(message)
     if newline: sys.stderr.write("\n")
 
-"""
-for file in args.files
-    convert it. 
-    write it. 
-"""
-
 
 for fileName in args.files: 
+
     #Check that file even exists 
     if not os.path.isfile(fileName):
         #in the future, I want to throw this into a logger 
         eprint("{} could not be found".format(fileName))
         continue 
+    
+    #check that the file isn't already a json file
+    if re.search("\.json",fileName): 
+        eprint("{} is already a json file. Not converting.".format(fileName))
+        continue 
+    
 
     #open file and generate Header (colNames) 
     #This assumes that all spop files have the same header
@@ -66,13 +66,17 @@ for fileName in args.files:
             else: 
                 headers.append(nextLine)
 
-    #names are just camelCase Concatenations
-    #of numbered lines
-    # '# 1: field description' 
-    #unless a format line is there 
-    #in spop files format lines look like this: 
-    # '#format field1 fileld2 ... fieldN'
+    # names are just camelCase Concatenations
+    # of numbered lines like below 
+    # '# 1: field description 1' 
+    # '# 2: field description 2' 
+    # ... 
+    # '# N: field description N' 
     #
+    # unless a format line is there 
+    # in spop files format lines look like this: 
+    # '#format field1 fileld2 ... fieldN'
+
     jsonHeaders=[]
     for line in headers: 
         #match starts from beginning of line (unlike search) 
@@ -87,15 +91,26 @@ for fileName in args.files:
             line=line[0].lower()+line[1:]
             fieldHeader="".join([ x for x in line if x.isalpha()])
             jsonHeaders.append(fieldHeader)
+    
+    #then, read in the rest of the file and 
+    #dump it into a jsonFile
 
-    print("headers")
-    print(jsonHeaders)
+    jsonIntermediate=[]
+    
+    with open(fileName, "r") as f:
+        for line in f: 
+            line=line.strip()
 
+            #ignoreHeaders
+            if len(line)==0 or "#" in line:
+                continue 
+            
+            fields=line.split(" ")
+            jsonIntermediate.append(dict(zip(jsonHeaders,fields)))
 
-
-
-
-
+    
+    with open(fileName+".json",'w') as outFile:
+        json.dump(jsonIntermediate,outFile)
 
 
 
