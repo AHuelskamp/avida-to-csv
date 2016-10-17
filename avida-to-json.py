@@ -66,13 +66,17 @@ for fileName in args.files:
             else: 
                 headers.append(nextLine)
 
-    #names are just camelCase Concatenations
-    #of numbered lines
-    # '# 1: field description' 
-    #unless a format line is there 
-    #in spop files format lines look like this: 
-    # '#format field1 fileld2 ... fieldN'
+    # names are just camelCase Concatenations
+    # of numbered lines like below 
+    # '# 1: field description 1' 
+    # '# 2: field description 2' 
+    # ... 
+    # '# N: field description N' 
     #
+    # unless a format line is there 
+    # in spop files format lines look like this: 
+    # '#format field1 fileld2 ... fieldN'
+
     jsonHeaders=[]
     for line in headers: 
         #match starts from beginning of line (unlike search) 
@@ -87,15 +91,26 @@ for fileName in args.files:
             line=line[0].lower()+line[1:]
             fieldHeader="".join([ x for x in line if x.isalpha()])
             jsonHeaders.append(fieldHeader)
+    
+    #then, read in the rest of the file and 
+    #dump it into a jsonFile
 
-    print("headers")
-    print(jsonHeaders)
+    jsonIntermediate=[]
+    
+    with open(fileName, "r") as f:
+        for line in f: 
+            line=line.strip()
 
+            #ignoreHeaders
+            if len(line)==0 or "#" in line:
+                continue 
+            
+            fields=line.split(" ")
+            jsonIntermediate.append(dict(zip(jsonHeaders,fields)))
 
-
-
-
-
+    
+    with open(fileName+".json",'w') as outFile:
+        json.dump(jsonIntermediate,outFile)
 
 
 
