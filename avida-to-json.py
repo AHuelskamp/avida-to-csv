@@ -3,7 +3,7 @@ Usage:
     python3 thisFile.py fileA.spop [fileB.dat ... fileN.spop]
 
 Takes all avida style files and throws them into a json file for easier processing. 
-This is largely based off project 1 in CSE 480 
+This is largely based off project 1 in CSE 480 FS2016
 
 The avida files are odd in that they have a multiline header describing the columns, 
 a blank line, and then the data. 
@@ -23,7 +23,6 @@ import os
 import string 
 
 
-
 #set up parser
 commandParser = argparse.ArgumentParser(description="A list of avida files to convert to json") 
 commandParser.add_argument('files', metavar="FILE", type=str, nargs="+", 
@@ -37,19 +36,20 @@ def eprint(message,newline=True):
     sys.stderr.write(message)
     if newline: sys.stderr.write("\n")
 
-"""
-for file in args.files
-    convert it. 
-    write it. 
-"""
-
 
 for fileName in args.files: 
+
     #Check that file even exists 
     if not os.path.isfile(fileName):
         #in the future, I want to throw this into a logger 
         eprint("{} could not be found".format(fileName))
         continue 
+    
+    #check that the file isn't already a json file
+    if re.search("\.json",fileName): 
+        eprint("{} is already a json file. Not converting.".format(fileName))
+        continue 
+    
 
     #open file and generate Header (colNames) 
     #This assumes that all spop files have the same header
