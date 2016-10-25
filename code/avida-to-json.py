@@ -92,59 +92,59 @@ class Converter():
     # in spop files format lines look like this:
     # '#format field1 fileld2 ... fieldN'
 
-    firstLines=[]
-    with open(self.fileName, "r") as f:
-        #read until out of header lines
-        while True:
-            nextLine=f.readline().strip()
-            if len(nextLine)==0 or "#" not in nextLine:
+        firstLines=[]
+        with open(self.fileName, "r") as f:
+            #read until out of header lines
+            while True:
+                nextLine=f.readline().strip()
+                if len(nextLine)==0 or "#" not in nextLine:
+                    break
+                else:
+                    firstLines.append(nextLine)
+
+        #generate the fields from either the first line of the file
+        #or a camel case concatentation of the numbered fields.
+        self.header=[]
+        for line in firstLines:
+
+            #match starts from beginning of line (unlike search)
+            #There've been some files that start this way.
+            #We will use the #format lines for the headers
+            #over getting things from the numbered lines.
+            if re.match("#format",line):
+                fields=line.split(" ")
+                self.header=fields[1:]
                 break
-            else:
-                firstLines.append(nextLine)
 
-    #generate the fields from either the first line of the file
-    #or a camel case concatentation of the numbered fields.
-    self.header=[]
-    for line in firstLines:
+            #if line matches the '# N: field' format:
+            elif re.match("# +[0-9]+:",line):
+                #Note that changing anything here
+                #may cause the header names to change
+                #if things have already been generated with this script
+                #then the same types of files might not have the same headers.
 
-        #match starts from beginning of line (unlike search)
-        #There've been some files that start this way.
-        #We will use the #format lines for the headers
-        #over getting things from the numbered lines.
-        if re.match("#format",line):
-            fields=line.split(" ")
-            self.header=fields[1:]
-            break
+                #pull out the field.
+                line=line.replace(re.match("# +[0-9]+:",line).group(),"").strip()
 
-        #if line matches the '# N: field' format:
-        elif re.match("# +[0-9]+:",line):
-            #Note that changing anything here
-            #may cause the header names to change
-            #if things have already been generated with this script
-            #then the same types of files might not have the same headers.
+                #capitolize things.
+                line=string.capwords(line)
 
-            #pull out the field.
-            line=line.replace(re.match("# +[0-9]+:",line).group(),"").strip()
+                #lowercase first letter
+                line=line[0].lower()+line[1:]
 
-            #capitolize things.
-            line=string.capwords(line)
+                #add things back if they're letters (ie, get rid of spaces)
+                fieldHeader="".join([ x for x in line if x.isalpha()])
 
-            #lowercase first letter
-            line=line[0].lower()+line[1:]
+                #add header to list of headers
+                self.header.append(fieldHeader)
 
-            #add things back if they're letters (ie, get rid of spaces)
-            fieldHeader="".join([ x for x in line if x.isalpha()])
+        message="Headers are {}".format(self.header)
+        logging.debug(message)
 
-            #add header to list of headers
-            self.header.append(fieldHeader)
-
-    message="Headers are {}".format(self.header)
-    logging.debug(message)
-
-    def generateIntermediate(self):
+    def _generateIntermediate(self):
         #read in file and zip with headers
 
-        if self.header=list(): self._generateHeaders()
+        if self.header==list(): self._generateHeaders()
 
         self.intermediate=[]
 
@@ -159,16 +159,16 @@ class Converter():
             #split lines bases on the space value they've been
             #written with
             fields=line.split(" ")
-            self.intermediate.append(dict(zip(jsonHeaders,fields)))
+            self.intermediate.append(dict(zip(self.header,fields)))
 
 
     def writeJson(self):
         if self.intermediate==list(): self._generateIntermediate()
 
-        message="Writing file {}".format(self.jsonFileName)
+        message="Writing file {}".format(self.jsonName)
         logging.debug(message)
 
-        with open(self.jsonFileName,'w') as outFile:
+        with open(self.jsonName,'w') as outFile:
             json.dump(self.intermediate, outFile)
 
 
