@@ -21,6 +21,7 @@ import sys
 import argparse 
 import os
 import string 
+import logging
 
 
 #set up parser
@@ -29,25 +30,26 @@ commandParser.add_argument('files', metavar="FILE", type=str, nargs="+",
                         help="files to convert")
 args = commandParser.parse_args()
 
+#set up logging
+FORMAT='%(asctime)-15s %(message)s'
 
-#set up eprint function 
-#should be replaced by logger soon 
-def eprint(message,newline=True):
-    sys.stderr.write(message)
-    if newline: sys.stderr.write("\n")
+#this will be set later by a command line arg
+LEVEL="DEBUG"
 
+logging.basicConfig(format=FORMAT,level=LEVEL)
 
 for fileName in args.files: 
 
     #Check that file even exists 
     if not os.path.isfile(fileName):
-        #in the future, I want to throw this into a logger 
-        eprint("{} could not be found".format(fileName))
+        message="{} could not be found".format(fileName)
+        logging.warn(message)
         continue 
     
     #check that the file isn't already a json file
     if re.search("\.json",fileName): 
-        eprint("{} is already a json file. Not converting.".format(fileName))
+        message="{} is already a json file. Not converting.".format(fileName)
+        logging.warn(message)
         continue 
     
 
@@ -111,6 +113,4 @@ for fileName in args.files:
     
     with open(fileName+".json",'w') as outFile:
         json.dump(jsonIntermediate,outFile)
-
-
 
