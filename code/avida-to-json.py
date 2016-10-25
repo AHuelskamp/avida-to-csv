@@ -38,8 +38,18 @@ LEVEL="DEBUG"
 
 logging.basicConfig(format=FORMAT,level=LEVEL)
 
-for fileName in args.files: 
 
+class Converter(): 
+
+    def __init__(self,fileName): 
+        self.fileName=fileName
+        self.headers=list()
+        self.intermediate=list()
+
+        self._setJsonName()
+    
+    def _setJsonName(self): 
+        self.jsonName=self.fileName+".json"
     #Check that file even exists 
     if not os.path.isfile(fileName):
         message="File {} could not be found".format(fileName)
@@ -117,10 +127,18 @@ for fileName in args.files:
             jsonIntermediate.append(dict(zip(jsonHeaders,fields)))
 
     
-    jsonFileName=fileName+".json"
-    message="Writing file {}".format(jsonFileName)
-    logging.debug(message)
+    def writeJson(self): 
+        if self.intermediate==list(): self._generateIntermediate()
 
-    with open(jsonFileName,'w') as outFile:
-        json.dump(jsonIntermediate,outFile)
+        message="Writing file {}".format(self.jsonFileName)
+        logging.debug(message)
+        
+        with open(self.jsonFileName,'w') as outFile:
+            json.dump(self.intermediate, outFile)
+
+
+
+for fileName in args.files: 
+    converter=Converter(fileName) 
+    converter.writeJson()
 
