@@ -42,15 +42,18 @@ for fileName in args.files:
 
     #Check that file even exists 
     if not os.path.isfile(fileName):
-        message="{} could not be found".format(fileName)
+        message="File {} could not be found".format(fileName)
         logging.warn(message)
         continue 
     
     #check that the file isn't already a json file
     if re.search("\.json",fileName): 
-        message="{} is already a json file. Not converting.".format(fileName)
+        message="File {} is already a json file. Not converting.".format(fileName)
         logging.warn(message)
         continue 
+
+    message="Converting file {}".format(fileName)
+    logging.info(message)
     
 
     #open file and generate Header (colNames) 
@@ -93,6 +96,9 @@ for fileName in args.files:
             line=line[0].lower()+line[1:]
             fieldHeader="".join([ x for x in line if x.isalpha()])
             jsonHeaders.append(fieldHeader)
+
+    message="Headers are {}".format(jsonHeaders)
+    logging.debug(message)
     
     #then, read in the rest of the file and 
     #dump it into a jsonFile
@@ -111,6 +117,10 @@ for fileName in args.files:
             jsonIntermediate.append(dict(zip(jsonHeaders,fields)))
 
     
-    with open(fileName+".json",'w') as outFile:
+    jsonFileName=fileName+".json"
+    message="Writing file {}".format(jsonFileName)
+    logging.debug(message)
+
+    with open(jsonFileName,'w') as outFile:
         json.dump(jsonIntermediate,outFile)
 
