@@ -47,81 +47,96 @@ class Converter():
         self.intermediate=list()
 
         self._setJsonName()
+        self._checkValidFile()
+
+        self._generateHeader()
+        self._generateIntermediate()
     
     def _setJsonName(self): 
         self.jsonName=self.fileName+".json"
-    #Check that file even exists 
-    if not os.path.isfile(fileName):
-        message="File {} could not be found".format(fileName)
-        logging.warn(message)
-        continue 
-    
-    #check that the file isn't already a json file
-    if re.search("\.json",fileName): 
-        message="File {} is already a json file. Not converting.".format(fileName)
-        logging.warn(message)
-        continue 
 
-    message="Converting file {}".format(fileName)
-    logging.info(message)
-    
+    def _checkValidFile(self): 
 
+        #Check that file even exists 
+        #technically race conditions exist but those are, hopefully, rare. 
+        if not os.path.isfile(fileName):
+            message="File {} could not be found".format(fileName)
+            logging.warn(message)
+            self.valid=False
+            
+            #check that the file isn't already a json file
+        elif re.search("\.json",fileName): 
+            message="File {} is already a json file. Not converting.".format(fileName)
+            logging.warn(message)
+            self.valid=False
+
+        else: 
+            message="File {} is found and valid.".format(fileName)
+            logging.info(message)
+            self.valid=True
+
+    def _generateHeader(self): 
     #open file and generate Header (colNames) 
     #This assumes that all spop files have the same header
     #If 2 .spop files have slightly different column names
     #(even if they have the same data) they will not be the same json file
-    
+   
     headers=[]
-    with open(fileName, "r") as f: 
-        while True:
-            #read until out of header lines 
-            nextLine=f.readline().strip()
-            if len(nextLine)==0 or "#" not in nextLine: 
-                break 
-            else: 
-                headers.append(nextLine)
+        with open(fileName, "r") as f: 
+            while True:
+                #read until out of header lines 
+                nextLine=f.readline().strip()
+                if len(nextLine)==0 or "#" not in nextLine: 
+                    break 
+                else: 
+                    headers.append(nextLine)
 
-    # names are just camelCase Concatenations
-    # of numbered lines like below 
-    # '# 1: field description 1' 
-    # '# 2: field description 2' 
-    # ... 
-    # '# N: field description N' 
-    #
-    # unless a format line is there 
-    # in spop files format lines look like this: 
-    # '#format field1 fileld2 ... fieldN'
+        # names are just camelCase Concatenations
+        # of numbered lines like below 
+        # '# 1: field description 1' 
+        # '# 2: field description 2' 
+        # ... 
+        # '# N: field description N' 
+        #
+        # unless a format line is there 
+        # in spop files format lines look like this: 
+        # '#format field1 fileld2 ... fieldN'
 
-    jsonHeaders=[]
-    for line in headers: 
-        #match starts from beginning of line (unlike search) 
-        if re.match("#format",line):
-            fields=line.split(" ")
-            jsonHeaders=fields[1:]
-            break
+        jsonHeaders=[]
+        for line in headers: 
+            #match starts from beginning of line (unlike search) 
+            if re.match("#format",line):
+                fields=line.split(" ")
+                jsonHeaders=fields[1:]
+                break
 
-        elif re.match("# +[0-9]+:",line): 
-            line=line.replace(re.match("# +[0-9]+:",line).group(),"").strip()
-            line=string.capwords(line)
-            line=line[0].lower()+line[1:]
-            fieldHeader="".join([ x for x in line if x.isalpha()])
-            jsonHeaders.append(fieldHeader)
+            elif re.match("# +[0-9]+:",line): 
+                line=line.replace(re.match("# +[0-9]+:",line).group(),"").strip()
+                line=string.capwords(line)
+                line=line[0].lower()+line[1:]
+                fieldHeader="".join([ x for x in line if x.isalpha()])
+                jsonHeaders.append(fieldHeader)
 
-    message="Headers are {}".format(jsonHeaders)
-    logging.debug(message)
-    
-    #then, read in the rest of the file and 
-    #dump it into a jsonFile
+        message="Headers are {}".format(jsonHeaders)
+        logging.debug(message)
+        
+    def generateIntermediate(self): 
 
-    jsonIntermediate=[]
-    
-    with open(fileName, "r") as f:
-        for line in f: 
-            line=line.strip()
+        if self.header=list(): self.generateHeaders()
 
-            #ignoreHeaders
-            if len(line)==0 or "#" in line:
-                continue 
+        #read in file and zip with headers 
+        #then, read in the rest of the file and 
+        #dump it into a jsonFile
+
+        jsonIntermediate=[]
+        
+        with open(fileName, "r") as f:
+            for line in f: 
+                line=line.strip()
+
+                #ignoreHeaders
+                if len(line)==0 or "#" in line:
+                    continue 
             
             fields=line.split(" ")
             jsonIntermediate.append(dict(zip(jsonHeaders,fields)))
