@@ -16,5 +16,6 @@ LEVEL="DEBUG"
 
 logging.basicConfig(format=FORMAT,level=LEVEL)
 
-logging.info('Info')
-logging.warning('Warning stuff') 
+if __name__ == "__main__": 
+	logging.info('Info')
+	logging.warning('Warning stuff') 
