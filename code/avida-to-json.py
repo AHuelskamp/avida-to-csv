@@ -76,21 +76,24 @@ class Converter():
             self.valid=True
 
     def _generateHeader(self):
-    #open file and generate Header (colNames)
-    #This assumes that all spop files have the same header
-    #If 2 .spop files have slightly different column names
-    #(even if they have the same data) they will not be the same json file
+        if not self.valid:
+            return -1
 
-    # names are just camelCase Concatenations
-    # of numbered lines like below
-    # '# 1: field description 1'
-    # '# 2: field description 2'
-    # ...
-    # '# N: field description N'
-    #
-    # unless a format line is there
-    # in spop files format lines look like this:
-    # '#format field1 fileld2 ... fieldN'
+        #open file and generate Header (colNames)
+        #This assumes that all spop files have the same header
+        #If 2 .spop files have slightly different column names
+        #(even if they have the same data) they will not be the same json file
+
+        # names are just camelCase Concatenations
+        # of numbered lines like below
+        # '# 1: field description 1'
+        # '# 2: field description 2'
+        # ...
+        # '# N: field description N'
+        #
+        # unless a format line is there
+        # in spop files format lines look like this:
+        # '#format field1 fileld2 ... fieldN'
 
         firstLines=[]
         with open(self.fileName, "r") as f:
@@ -142,9 +145,11 @@ class Converter():
         logging.debug(message)
 
     def _generateIntermediate(self):
-        #read in file and zip with headers
+        if not self.valid:
+            return -1
 
-        if self.header==list(): self._generateHeaders()
+        #read in file and zip with headers
+        if self.header==list(): self._generateHeader()
 
         self.intermediate=[]
 
@@ -159,9 +164,27 @@ class Converter():
                 #split lines bases on the space value they've been
                 #written with
                 fields=line.split(" ")
-                self.intermediate.append(dict(zip(self.header,fields)))
+
+                #turn fields into ints, or Nones if they should be
+                parsedFields=list()
+                for field in fields:
+                    if field=="(none)":
+                        parsedFields.append(None)
+                    else:
+                        #try to convert to float
+                        try:
+                            field=float(field)
+                        except ValueError:
+                            pass
+                        parsedFields.append(field)
+
+                self.intermediate.append(dict(zip(self.header,parsedFields)))
 
     def writeJson(self):
+        if not self.valid:
+            logging.error("cannot write file {} as it's invalid".format(self.fileName))
+            return -1
+
         if self.intermediate==list(): self._generateIntermediate()
 
         message="Writing file {}".format(self.jsonName)
