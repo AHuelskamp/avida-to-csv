@@ -2,31 +2,31 @@
 Usage:
     python3 thisFile.py fileA.spop [fileB.dat ... fileN.spop]
 
-Takes all avida style files and throws them into a json file for easier processing. 
+Takes all avida style files and throws them into a json file for easier processing.
 This is largely based off project 1 in CSE 480 FS2016
 
-The avida files are odd in that they have a multiline header describing the columns, 
-a blank line, and then the data. 
+The avida files are odd in that they have a multiline header describing the columns,
+a blank line, and then the data.
 
-The names for the json fields are made from concatenating the columIDs together. 
+The names for the json fields are made from concatenating the columIDs together.
 
 If a line is missing columns, (in some .spop files where things are "dead") it
 is assumed that the missing fields are from the end.
 """
 
-import re 
-import csv 
-import json 
-import sys 
-import argparse 
+import re
+import csv
+import json
+import sys
+import argparse
 import os
-import string 
+import string
 import logging
 
 
 #set up parser
-commandParser = argparse.ArgumentParser(description="A list of avida files to convert to json") 
-commandParser.add_argument('files', metavar="FILE", type=str, nargs="+", 
+commandParser = argparse.ArgumentParser(description="A list of avida files to convert to json")
+commandParser.add_argument('files', metavar="FILE", type=str, nargs="+",
                         help="files to convert")
 args = commandParser.parse_args()
 
@@ -39,9 +39,9 @@ LEVEL="DEBUG"
 logging.basicConfig(format=FORMAT,level=LEVEL)
 
 
-class Converter(): 
+class Converter():
 
-    def __init__(self,fileName): 
+    def __init__(self,fileName):
         self.fileName=fileName
         self.headers=list()
         self.intermediate=list()
@@ -51,88 +51,88 @@ class Converter():
 
         self._generateHeader()
         self._generateIntermediate()
-    
-    def _setJsonName(self): 
+
+    def _setJsonName(self):
         self.jsonName=self.fileName+".json"
 
-    def _checkValidFile(self): 
+    def _checkValidFile(self):
 
-        #Check that file even exists 
-        #technically race conditions exist but those are, hopefully, rare. 
+        #Check that file even exists
+        #technically race conditions exist but those are, hopefully, rare.
         if not os.path.isfile(fileName):
             message="File {} could not be found".format(fileName)
             logging.warn(message)
             self.valid=False
-            
+
             #check that the file isn't already a json file
-        elif re.search("\.json",fileName): 
+        elif re.search("\.json",fileName):
             message="File {} is already a json file. Not converting.".format(fileName)
             logging.warn(message)
             self.valid=False
 
-        else: 
+        else:
             message="File {} is found and valid.".format(fileName)
             logging.info(message)
             self.valid=True
 
-    def _generateHeader(self): 
-    #open file and generate Header (colNames) 
+    def _generateHeader(self):
+    #open file and generate Header (colNames)
     #This assumes that all spop files have the same header
     #If 2 .spop files have slightly different column names
     #(even if they have the same data) they will not be the same json file
 
     # names are just camelCase Concatenations
-    # of numbered lines like below 
-    # '# 1: field description 1' 
-    # '# 2: field description 2' 
-    # ... 
-    # '# N: field description N' 
+    # of numbered lines like below
+    # '# 1: field description 1'
+    # '# 2: field description 2'
+    # ...
+    # '# N: field description N'
     #
-    # unless a format line is there 
-    # in spop files format lines look like this: 
+    # unless a format line is there
+    # in spop files format lines look like this:
     # '#format field1 fileld2 ... fieldN'
-   
+
     firstLines=[]
-    with open(self.fileName, "r") as f: 
-        #read until out of header lines 
+    with open(self.fileName, "r") as f:
+        #read until out of header lines
         while True:
             nextLine=f.readline().strip()
-            if len(nextLine)==0 or "#" not in nextLine: 
-                break 
-            else: 
+            if len(nextLine)==0 or "#" not in nextLine:
+                break
+            else:
                 firstLines.append(nextLine)
 
-    #generate the fields from either the first line of the file 
-    #or a camel case concatentation of the numbered fields. 
+    #generate the fields from either the first line of the file
+    #or a camel case concatentation of the numbered fields.
     self.header=[]
-    for line in firstLines: 
+    for line in firstLines:
 
-        #match starts from beginning of line (unlike search) 
-        #There've been some files that start this way. 
-        #We will use the #format lines for the headers 
-        #over getting things from the numbered lines. 
+        #match starts from beginning of line (unlike search)
+        #There've been some files that start this way.
+        #We will use the #format lines for the headers
+        #over getting things from the numbered lines.
         if re.match("#format",line):
             fields=line.split(" ")
             self.header=fields[1:]
             break
-        
-        #if line matches the '# N: field' format: 
-        elif re.match("# +[0-9]+:",line): 
-            #Note that changing anything here 
+
+        #if line matches the '# N: field' format:
+        elif re.match("# +[0-9]+:",line):
+            #Note that changing anything here
             #may cause the header names to change
             #if things have already been generated with this script
-            #then the same types of files might not have the same headers. 
-            
-            #pull out the field. 
+            #then the same types of files might not have the same headers.
+
+            #pull out the field.
             line=line.replace(re.match("# +[0-9]+:",line).group(),"").strip()
-            
-            #capitolize things. 
+
+            #capitolize things.
             line=string.capwords(line)
 
             #lowercase first letter
             line=line[0].lower()+line[1:]
 
-            #add things back if they're letters (ie, get rid of spaces) 
+            #add things back if they're letters (ie, get rid of spaces)
             fieldHeader="".join([ x for x in line if x.isalpha()])
 
             #add header to list of headers
@@ -140,40 +140,40 @@ class Converter():
 
     message="Headers are {}".format(self.header)
     logging.debug(message)
-        
-    def generateIntermediate(self): 
-        #read in file and zip with headers 
+
+    def generateIntermediate(self):
+        #read in file and zip with headers
 
         if self.header=list(): self._generateHeaders()
 
         self.intermediate=[]
-        
+
         with open(fileName, "r") as f:
-            for line in f: 
+            for line in f:
                 line=line.strip()
 
                 #ignoreHeaders
                 if len(line)==0 or "#" in line:
-                    continue 
-            
-            #split lines bases on the space value they've been 
-            #written with 
+                    continue
+
+            #split lines bases on the space value they've been
+            #written with
             fields=line.split(" ")
             self.intermediate.append(dict(zip(jsonHeaders,fields)))
 
-    
-    def writeJson(self): 
+
+    def writeJson(self):
         if self.intermediate==list(): self._generateIntermediate()
 
         message="Writing file {}".format(self.jsonFileName)
         logging.debug(message)
-        
+
         with open(self.jsonFileName,'w') as outFile:
             json.dump(self.intermediate, outFile)
 
 
 
-for fileName in args.files: 
-    converter=Converter(fileName) 
+for fileName in args.files:
+    converter=Converter(fileName)
     converter.writeJson()
 
