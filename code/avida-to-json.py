@@ -156,11 +156,10 @@ class Converter():
                 if len(line)==0 or "#" in line:
                     continue
 
-            #split lines bases on the space value they've been
-            #written with
-            fields=line.split(" ")
-            self.intermediate.append(dict(zip(self.header,fields)))
-
+                #split lines bases on the space value they've been
+                #written with
+                fields=line.split(" ")
+                self.intermediate.append(dict(zip(self.header,fields)))
 
     def writeJson(self):
         if self.intermediate==list(): self._generateIntermediate()
