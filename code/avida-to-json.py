@@ -46,8 +46,8 @@ class Converter():
         self.headers=list()
         self.intermediate=list()
 
-        self._setJsonName()
         self._checkValidFile()
+        self._setJsonName()
 
         self._generateHeader()
         self._generateIntermediate()
@@ -80,55 +80,73 @@ class Converter():
     #This assumes that all spop files have the same header
     #If 2 .spop files have slightly different column names
     #(even if they have the same data) they will not be the same json file
+
+    # names are just camelCase Concatenations
+    # of numbered lines like below 
+    # '# 1: field description 1' 
+    # '# 2: field description 2' 
+    # ... 
+    # '# N: field description N' 
+    #
+    # unless a format line is there 
+    # in spop files format lines look like this: 
+    # '#format field1 fileld2 ... fieldN'
    
-    headers=[]
-        with open(fileName, "r") as f: 
-            while True:
-                #read until out of header lines 
-                nextLine=f.readline().strip()
-                if len(nextLine)==0 or "#" not in nextLine: 
-                    break 
-                else: 
-                    headers.append(nextLine)
+    firstLines=[]
+    with open(self.fileName, "r") as f: 
+        #read until out of header lines 
+        while True:
+            nextLine=f.readline().strip()
+            if len(nextLine)==0 or "#" not in nextLine: 
+                break 
+            else: 
+                firstLines.append(nextLine)
 
-        # names are just camelCase Concatenations
-        # of numbered lines like below 
-        # '# 1: field description 1' 
-        # '# 2: field description 2' 
-        # ... 
-        # '# N: field description N' 
-        #
-        # unless a format line is there 
-        # in spop files format lines look like this: 
-        # '#format field1 fileld2 ... fieldN'
+    #generate the fields from either the first line of the file 
+    #or a camel case concatentation of the numbered fields. 
+    self.header=[]
+    for line in firstLines: 
 
-        jsonHeaders=[]
-        for line in headers: 
-            #match starts from beginning of line (unlike search) 
-            if re.match("#format",line):
-                fields=line.split(" ")
-                jsonHeaders=fields[1:]
-                break
+        #match starts from beginning of line (unlike search) 
+        #There've been some files that start this way. 
+        #We will use the #format lines for the headers 
+        #over getting things from the numbered lines. 
+        if re.match("#format",line):
+            fields=line.split(" ")
+            self.header=fields[1:]
+            break
+        
+        #if line matches the '# N: field' format: 
+        elif re.match("# +[0-9]+:",line): 
+            #Note that changing anything here 
+            #may cause the header names to change
+            #if things have already been generated with this script
+            #then the same types of files might not have the same headers. 
+            
+            #pull out the field. 
+            line=line.replace(re.match("# +[0-9]+:",line).group(),"").strip()
+            
+            #capitolize things. 
+            line=string.capwords(line)
 
-            elif re.match("# +[0-9]+:",line): 
-                line=line.replace(re.match("# +[0-9]+:",line).group(),"").strip()
-                line=string.capwords(line)
-                line=line[0].lower()+line[1:]
-                fieldHeader="".join([ x for x in line if x.isalpha()])
-                jsonHeaders.append(fieldHeader)
+            #lowercase first letter
+            line=line[0].lower()+line[1:]
 
-        message="Headers are {}".format(jsonHeaders)
-        logging.debug(message)
+            #add things back if they're letters (ie, get rid of spaces) 
+            fieldHeader="".join([ x for x in line if x.isalpha()])
+
+            #add header to list of headers
+            self.header.append(fieldHeader)
+
+    message="Headers are {}".format(self.header)
+    logging.debug(message)
         
     def generateIntermediate(self): 
-
-        if self.header=list(): self.generateHeaders()
-
         #read in file and zip with headers 
-        #then, read in the rest of the file and 
-        #dump it into a jsonFile
 
-        jsonIntermediate=[]
+        if self.header=list(): self._generateHeaders()
+
+        self.intermediate=[]
         
         with open(fileName, "r") as f:
             for line in f: 
@@ -138,8 +156,10 @@ class Converter():
                 if len(line)==0 or "#" in line:
                     continue 
             
+            #split lines bases on the space value they've been 
+            #written with 
             fields=line.split(" ")
-            jsonIntermediate.append(dict(zip(jsonHeaders,fields)))
+            self.intermediate.append(dict(zip(jsonHeaders,fields)))
 
     
     def writeJson(self): 
